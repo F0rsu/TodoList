@@ -1,25 +1,161 @@
-import logo from './logo.svg';
-import './App.css';
+import React, { useState, useRef } from "react";
+import { AgGridReact } from "ag-grid-react";
+import "ag-grid-community/dist/styles/ag-grid.css";
+import "ag-grid-community/dist/styles/ag-theme-material.css";
+import Button from "@mui/material/Button";
+import TextField from "@mui/material/TextField";
+import Stack from "@mui/material/Stack";
 
-function App() {
+import { AdapterDateFns } from "@mui/x-date-pickers/AdapterDateFns";
+
+import { LocalizationProvider } from "@mui/x-date-pickers/LocalizationProvider";
+import { DatePicker } from "@mui/x-date-pickers/DatePicker";
+import { Tabs, Tab } from "@mui/material";
+import moment from "moment";
+
+function TodoList() {
+  const [todo, setTodo] = useState({ description: "", date: "", priority: "" });
+  const [todos, setTodos] = useState([]);
+  const gridRef = useRef();
+
+  const [value, setValue] = useState("one");
+
+  const handleChange = (event, value) => {
+    setValue(value);
+  };
+
+  const inputChanged = (event) => {
+    setTodo({ ...todo, [event.target.name]: event.target.value });
+  };
+
+  const addTodo = (event) => {
+    setTodos([...todos, todo]);
+  };
+
+  const deleteTodo = () => {
+    if (gridRef.current.getSelectedNodes().length > 0) {
+      setTodos(
+        todos.filter(
+          (todo, index) =>
+            index !== gridRef.current.getSelectedNodes()[0].childIndex
+        )
+      );
+    } else {
+      alert("Select row first");
+    }
+  };
+
+  const columns = [
+    {
+      headerName: "Date",
+      field: "date",
+      sortable: true,
+      filter: true,
+      floatingFilter: true,
+      cellRenderer: (params) => {
+        return moment(params.value).startOf("day").format("DD.MM.YYYY");
+      },
+    },
+
+    {
+      headerName: "Description",
+      field: "description",
+      sortable: true,
+      filter: true,
+      floatingFilter: true,
+    },
+    {
+      headerName: "Priority",
+      field: "priority",
+      sortable: true,
+      filter: true,
+      floatingFilter: true,
+      cellStyle: (params) =>
+        params.value === "High" ? { color: "red" } : { color: "black" },
+    },
+  ];
+
   return (
-    <div className="App">
-      <header className="App-header">
-        <img src={logo} className="App-logo" alt="logo" />
-        <p>
-          Edit <code>src/App.js</code> and save to reload.
-        </p>
-        <a
-          className="App-link"
-          href="https://reactjs.org"
-          target="_blank"
-          rel="noopener noreferrer"
-        >
-          Learn React
-        </a>
-      </header>
+    <div>
+      <Tabs value={value} onChange={handleChange}>
+        <Tab value="one" label="Home" />
+        <Tab value="two" label="TodoList" />
+      </Tabs>
+      {value === "one" && <div>Welcome to the TodoList!</div>}
+      {value === "two" && (
+        <div>
+          <div className="TodoList">
+            <h1> Todolist </h1>
+
+            <Stack
+              direction="row"
+              spacing={2}
+              justifyContent="center"
+              alignItems="center"
+            ></Stack>
+
+            <LocalizationProvider dateAdapter={AdapterDateFns}>
+              <DatePicker
+                label="date"
+                inputFormat="dd.MM.yyyy"
+                variant="standard"
+                value={todo.date}
+                onChange={(value) => setTodo({ ...todo, date: value })}
+                renderInput={(params) => <TextField {...params} />}
+                renderDay={(day, _value, DayComponentProps) => (
+                  <DayComponentProps.Button
+                    onClick={() => DayComponentProps.onSelect(day)}
+                  >
+                    {moment(day).format("D")}
+                  </DayComponentProps.Button>
+                )}
+              />
+            </LocalizationProvider>
+
+            <TextField
+              type="text"
+              onChange={inputChanged}
+              placeholder="Description"
+              name="description"
+              value={todo.description}
+              label="description"
+              variant="standard"
+            />
+
+            <input
+              type="text"
+              onChange={inputChanged}
+              placeholder="Priority"
+              name="priority"
+              value={todo.priority}
+            />
+
+            <Button onClick={addTodo} variant="outlined">
+              Add
+            </Button>
+            <button onClick={deleteTodo}>Delete</button>
+            <div
+              className="ag-theme.material"
+              style={{
+                height: "700px",
+                width: "80%",
+                margin: "auto",
+              }}
+            >
+              <AgGridReact
+                ref={gridRef}
+                onGridReady={(params) => (gridRef.current = params.api)}
+                rowSelection="single"
+                columnDefs={columns}
+                rowData={todos}
+                animateRows={true}
+              ></AgGridReact>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
 
-export default App;
+export default TodoList;
